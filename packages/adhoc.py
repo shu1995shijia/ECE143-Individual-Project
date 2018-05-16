@@ -83,8 +83,25 @@ def place_tower(region, tower):
 
 def update_tower_coverage(region, new_coverage):
     # Update the overall tower coverage on the given region
-    region = region + new_coverage
-    return region
+    """
+    To update the tower coverage after the communication tower coverage has been trimmed.
+
+    Args:
+        region (<numpy.ndarray>): The region to install the communication tower.
+        new_coverage (<numpy.ndarray>): The generated communication tower coverage.
+        
+    Returns:
+        new_region (<numpy.ndarray>): The updated region with the provided new coverage added. 
+                                      (The new region can only contains 0s and 1s in the matrix)
+    
+    Raises:
+        KeyError: Raises an exception.
+    """
+    assert isinstance(region, np.ndarray)
+    assert isinstance(new_coverage, np.ndarray)
+
+    new_region = region + new_coverage
+    return new_region
 
 
 def max_histogram_area(histogram, row):
@@ -94,6 +111,7 @@ def max_histogram_area(histogram, row):
 
     Args:
         histogram (list): A list contains the histogram.
+        row (int): The current row index when scanning through the rows in the overall region.
         
     Returns:
         max_rect (int): A numpy.ndarray contains the updated overall region with the newly installed communication tower
@@ -112,17 +130,13 @@ def max_histogram_area(histogram, row):
     for i in xrange(len(histogram) + 1):
         if i == 0:
             stack.append(i)
-
         elif i == len(histogram) or histogram[i] < histogram[i - 1]:
-            while len(stack) != 0:
-                
-                top = stack.pop()
-                
+            while len(stack) != 0:           
+                top = stack.pop()   
                 if len(stack) == 0:
                     l, w = histogram[top], i
                 else:
                     l, w = histogram[top], (i - stack[-1] - 1)
-
                 rect_area = l * w 
                 if rect_area > max_rect:
                     max_rect = rect_area
@@ -138,6 +152,20 @@ def max_histogram_area(histogram, row):
 
 def find_max_rect(region):
     # Find the maximum non-overlappying rectangle on the canvas.
+    """
+    To find the maximum rectangle appeared in given area of interest.
+
+    Args:
+        region (<numpy.ndarray>): The rectangle area that contains 0s (represents blank space) and 1s (represents the area to combine as rectangle).
+        
+    Returns:
+        max_rect (int): The maximum possible rectangle area consists 1s.
+        max_loc (dict): A dictionary contains the location(key = 'loc'), length(key = 'length') and width(key = 'width') of the maximum rectangle
+                        (representation of the maximum rectangle which could be used for trimming the coverage).
+    
+    Raises:
+        KeyError: Raises an exception.
+    """
     l, w = region.shape
     hist_region = np.zeros((l, w), dtype=int)
     hist_region[:] = region[:]
@@ -170,14 +198,12 @@ def trim_tower(region, tower):
         tower (dict):  A dictionary contains the location(key = 'loc'), length(key = 'length') and width(key = 'width').
         
     Returns:
-        region_update (<numpy.ndarray>): A numpy.ndarray contains the updated overall region with the newly installed communication tower
-        tower_install (dict): A dictionary contains the location(key = 'loc'), length(key = 'length') and width(key = 'width').
-    
+        trimmed_coverage (<numpy.ndarray>): A numpy.ndarray contains the whole region (marked as 0) and the maximum possible 
+                                            trimmed coverage of the communication tower installed (marked as 1).
+                                            
     Raises:
         KeyError: Raises an exception.
     """
-    print region
-    print "Original Tower Location: ", tower
     loc, l, w = tower['loc'], tower['length'], tower['width']
      # To prepare for finding the largest area of rectangle
     patch = np.zeros((l, w), dtype=int)
@@ -192,18 +218,15 @@ def trim_tower(region, tower):
     # Add the new coverage on a plane region map
     trimmed_coverage = np.zeros(region.shape, dtype=int)
     trimmed_coverage[loc[0] : loc[0] + l, loc[1] : loc[1] + w] = new_patch
-    print "Most recent added tower loaciton: ", tower
+    #print region
+    #print "Original Tower Location: ", tower
+    #print "Most recent added tower loaciton: ", tower
     print "Trimed Tower Area: ", tower_area
-    print "Trimmed Coverage Map: "
-    print trimmed_coverage
+    #print "Trimmed Coverage Map: "
+    #print trimmed_coverage
     #print new_patch
 
     return trimmed_coverage
-
-    
-
-
-
 
 
    
