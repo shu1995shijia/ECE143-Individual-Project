@@ -164,7 +164,7 @@ def find_max_rect(region):
 
     return max_rect, max_loc
 
-def trim_tower(region, tower):
+def trim_tower(region, tower, show_coverage_update=False):
     # Cut the extra tower coverage
     """
     To trim the newly added tower and find a rectangle of the maximum size to monitor 
@@ -192,61 +192,21 @@ def trim_tower(region, tower):
     tower_new['loc'] = (tmp_tower_loc['loc'][0] + loc[0], tmp_tower_loc['loc'][1] + loc[1])
     tower_new['length'] = tmp_tower_loc['length']
     tower_new['width'] = tmp_tower_loc['width']
-
-    new_patch = np.zeros((l, w), dtype=int)
-    new_patch = place_tower(new_patch, tmp_tower_loc)
-    # Add the new coverage on a plane region map
-    trimmed_coverage = np.zeros(region.shape, dtype=int)
-    trimmed_coverage[loc[0] : loc[0] + l, loc[1] : loc[1] + w] = new_patch
-    #print region
-    #print "Original Tower Location: ", tower
-    #print "Most recent added tower loaciton: ", tower
     print "Trimed Tower Area: ", tower_area
-    #print "Trimmed Coverage Map: "
-    #print trimmed_coverage
-    #print new_patch
-
-    return trimmed_coverage, tower_area, tower_new
-
-def trim_tower_old(region, tower):
-    # Cut the extra tower coverage
-    """
-    To trim the newly added tower and find a rectangle of the maximum size to monitor 
-    the uncovered space left in the overall region.
-
-    Args:
-        region (<numpy.ndarray>): The overall rectangle region.
-        tower (dict):  A dictionary contains the location(key = 'loc'), length(key = 'length') and width(key = 'width').
-        
-    Returns:
-        trimmed_coverage (<numpy.ndarray>): A numpy.ndarray contains the whole region (marked as 0) and the maximum possible 
-                                            trimmed coverage of the communication tower installed (marked as 1).
-        tower_area (int): The area of the maximal area of the trimed tower coverage.
-    """
-    loc, l, w = tower['loc'], tower['length'], tower['width']
-     # To prepare for finding the largest area of rectangle
-    patch = np.zeros((l, w), dtype=int)
-    patch[:] = region[loc[0] : loc[0] + l, loc[1] : loc[1] + w]
-    patch[patch == 1] = 1 # 1 represents open space
-    patch[patch > 1] = 0 # 0 represents used space
-    # Find the largest area of rectangle
-    tower_area, tmp_tower_loc = find_max_rect(patch)
-    new_patch = np.zeros((l, w), dtype=int)
     
-    new_patch = place_tower(new_patch, tmp_tower_loc)
-    # Add the new coverage on a plane region map
-    trimmed_coverage = np.zeros(region.shape, dtype=int)
-    trimmed_coverage[loc[0] : loc[0] + l, loc[1] : loc[1] + w] = new_patch
-    #print region
-    #print "Original Tower Location: ", tower
-    #print "Most recent added tower loaciton: ", tower
-    print "Trimed Tower Area: ", tower_area
-    #print "Trimmed Coverage Map: "
-    #print trimmed_coverage
-    #print new_patch
+    if show_coverage_update == True:
+        new_patch = np.zeros((l, w), dtype=int)
+        new_patch = place_tower(new_patch, tmp_tower_loc)
+        # Add the new coverage on a plane region map
+        coverage_update_display = np.zeros(region.shape, dtype=int)
+        coverage_update_display[loc[0] : loc[0] + l, loc[1] : loc[1] + w] = new_patch
+        print "The new tower coverage location info: ", tower_new
+        print "The trimmed tower coverage: \n", coverage_update_display
 
-    return trimmed_coverage, tower_area
+        
+    return tower_area, tower_new
 
+    
 
    
 def coverage_generation(region, target_area, tower_count=None, display=False):
@@ -266,9 +226,14 @@ def coverage_generation(region, target_area, tower_count=None, display=False):
 
     # if tower_count == None:
     #     while coverage_area != target_area:
-    #         tower = 
+    #         # Generate the new tower to be installed into the region
+    #         tower = generate_tower(region.shape)
+    #         # 
+    #         region_update = place_tower(region, tower)
+    #         trimmed_tower, tower_area, tower_loc_new = trim_tower(region_update, tower)
+    #         update_tower
+    
     pass
-
 
 
 
