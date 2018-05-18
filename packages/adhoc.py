@@ -13,9 +13,6 @@ def generate_region(length, width):
         
     Returns:
         The matrix initialized with all zeros as type <numpy.ndarray>.
-    
-    Raises:
-        KeyError: Raises an exception.
     """
     assert isinstance(length, int) and isinstance(width, int), "Input should be integer type."
     assert length > 0 and width > 0, "Input should all be greater than zero."
@@ -32,9 +29,6 @@ def generate_rand_num(lower, upper):
         
     Returns:
         sample (int): A sample(number) selected uniformly from the given bounds.
-    
-    Raises:
-        KeyError: Raises an exception.
     """
     assert isinstance(upper, int) and isinstance(lower, int), "Input should be integer type."
     assert upper >= lower
@@ -51,9 +45,6 @@ def generate_tower(region_size):
         
     Returns:
         tower (dict): A dictionary object contains the location, length and width information.
-    
-    Raises:
-        KeyError: Raises an exception.
     """
     tower = dict()
     tower['loc'] = (generate_rand_num(0, region_size[0] - 1), generate_rand_num(0, region_size[1] - 1))
@@ -72,9 +63,6 @@ def place_tower(region, tower):
         
     Returns:
         region_update (<numpy.ndarray>): A numpy.ndarray contains the updated overall region. Need to be trim latter.
-    
-    Raises:
-        KeyError: Raises an exception.
     """
     loc, l, w = tower['loc'], tower['length'], tower['width']
     region_update = region.copy()
@@ -93,9 +81,6 @@ def update_tower_coverage(region, new_coverage):
     Returns:
         new_region (<numpy.ndarray>): The updated region with the provided new coverage added. 
                                       (The new region can only contains 0s and 1s in the matrix)
-    
-    Raises:
-        KeyError: Raises an exception.
     """
     assert isinstance(region, np.ndarray)
     assert isinstance(new_coverage, np.ndarray)
@@ -116,9 +101,6 @@ def max_histogram_area(histogram, row):
     Returns:
         max_rect (int): A numpy.ndarray contains the updated overall region with the newly installed communication tower
         max_loc (dict): A dictionary contains the location(key = 'loc'), length(key = 'length') and width(key = 'width').
-    
-    Raises:
-        KeyError: Raises an exception.
     """
     assert isinstance(histogram, np.ndarray)
     assert isinstance(row, int)
@@ -162,9 +144,6 @@ def find_max_rect(region):
         max_rect (int): The maximum possible rectangle area consists 1s.
         max_loc (dict): A dictionary contains the location(key = 'loc'), length(key = 'length') and width(key = 'width') of the maximum rectangle
                         (representation of the maximum rectangle which could be used for trimming the coverage).
-    
-    Raises:
-        KeyError: Raises an exception.
     """
     l, w = region.shape
     hist_region = np.zeros((l, w), dtype=int)
@@ -185,8 +164,6 @@ def find_max_rect(region):
 
     return max_rect, max_loc
 
-    
-
 def trim_tower(region, tower):
     # Cut the extra tower coverage
     """
@@ -200,9 +177,51 @@ def trim_tower(region, tower):
     Returns:
         trimmed_coverage (<numpy.ndarray>): A numpy.ndarray contains the whole region (marked as 0) and the maximum possible 
                                             trimmed coverage of the communication tower installed (marked as 1).
-                                            
-    Raises:
-        KeyError: Raises an exception.
+        tower_area (int): The area of the maximal area of the trimed tower coverage.
+    """
+    loc, l, w = tower['loc'], tower['length'], tower['width']
+     # To prepare for finding the largest area of rectangle
+    patch = np.zeros((l, w), dtype=int)
+    patch[:] = region[loc[0] : loc[0] + l, loc[1] : loc[1] + w]
+    patch[patch == 1] = 1 # 1 represents open space
+    patch[patch > 1] = 0 # 0 represents used space
+    # Find the largest area of rectangle
+    tower_area, tmp_tower_loc = find_max_rect(patch)
+    # To calculate the new tower coverage
+    tower_new = dict()
+    tower_new['loc'] = (tmp_tower_loc['loc'][0] + loc[0], tmp_tower_loc['loc'][1] + loc[1])
+    tower_new['length'] = tmp_tower_loc['length']
+    tower_new['width'] = tmp_tower_loc['width']
+
+    new_patch = np.zeros((l, w), dtype=int)
+    new_patch = place_tower(new_patch, tmp_tower_loc)
+    # Add the new coverage on a plane region map
+    trimmed_coverage = np.zeros(region.shape, dtype=int)
+    trimmed_coverage[loc[0] : loc[0] + l, loc[1] : loc[1] + w] = new_patch
+    #print region
+    #print "Original Tower Location: ", tower
+    #print "Most recent added tower loaciton: ", tower
+    print "Trimed Tower Area: ", tower_area
+    #print "Trimmed Coverage Map: "
+    #print trimmed_coverage
+    #print new_patch
+
+    return trimmed_coverage, tower_area, tower_new
+
+def trim_tower_old(region, tower):
+    # Cut the extra tower coverage
+    """
+    To trim the newly added tower and find a rectangle of the maximum size to monitor 
+    the uncovered space left in the overall region.
+
+    Args:
+        region (<numpy.ndarray>): The overall rectangle region.
+        tower (dict):  A dictionary contains the location(key = 'loc'), length(key = 'length') and width(key = 'width').
+        
+    Returns:
+        trimmed_coverage (<numpy.ndarray>): A numpy.ndarray contains the whole region (marked as 0) and the maximum possible 
+                                            trimmed coverage of the communication tower installed (marked as 1).
+        tower_area (int): The area of the maximal area of the trimed tower coverage.
     """
     loc, l, w = tower['loc'], tower['length'], tower['width']
      # To prepare for finding the largest area of rectangle
@@ -226,13 +245,44 @@ def trim_tower(region, tower):
     #print trimmed_coverage
     #print new_patch
 
-    return trimmed_coverage
+    return trimmed_coverage, tower_area
 
 
    
-def coverage_generation():
+def coverage_generation(region, target_area, tower_count=None, display=False):
     # Generate the coverage map by inputing the desired coverage and a sequence of n  communication towers. 
+    """
+    Need to be added
+
+    Args:
+        region (<numpy.ndarray>): The overall rectangle region.
+        target_area (int):  
+        display (boolen): True for show the visualization. (Default=False)
+    Returns:
+        coverage_area (int): The total area of the coverage after execution
+        coverage_map (<numpy.ndarray>): The updated region map with the new towers added.
+    """
+    # coverage_area = 0
+
+    # if tower_count == None:
+    #     while coverage_area != target_area:
+    #         tower = 
     pass
-def coverage_generation_random():
-    # Generate a list of towers by inputting the desired coverage. 
-    pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
