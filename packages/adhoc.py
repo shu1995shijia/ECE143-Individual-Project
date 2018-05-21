@@ -1,6 +1,9 @@
 """
 Ad-Hoc Communications Network Installation
+Creator: Shijia Shu
+Email: s3shu@ucsd.edu
 """
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.collections import PatchCollection
@@ -72,28 +75,10 @@ def place_tower(region, tower):
     region_update[loc[0] : loc[0] + l, loc[1] : loc[1] + w] +=  1
     return region_update
 
-def update_tower_coverage(region, new_coverage):
-    # Update the overall tower coverage on the given region
-    """
-    To update the tower coverage after the communication tower coverage has been trimmed.
-
-    Args:
-        region (<numpy.ndarray>): The region to install the communication tower.
-        new_coverage (<numpy.ndarray>): The generated communication tower coverage.
-        
-    Returns:
-        new_region (<numpy.ndarray>): The updated region with the provided new coverage added. 
-                                      (The new region can only contains 0s and 1s in the matrix)
-    """
-    assert isinstance(region, np.ndarray)
-    assert isinstance(new_coverage, np.ndarray)
-
-    new_region = region + new_coverage
-    return new_region
-
 
 def max_histogram_area(histogram, row):
-    # Cut the extra tower coverage
+    # To find the maximum rectangle region in a given histogram.
+    # Details on how this function works showed in the jupyter notebook file
     """
     To find the maximum rect in a given histogram
 
@@ -151,6 +136,7 @@ def max_histogram_area(histogram, row):
 
 def find_max_rect(region):
     # Find the maximum non-overlappying rectangle on the canvas.
+    # Details on how this function works showed in the jupyter notebook file
     """
     To find the maximum rectangle appeared in given area of interest.
 
@@ -184,19 +170,19 @@ def find_max_rect(region):
     return max_rect, max_loc
 
 def trim_tower(region, tower, show_coverage_update=False):
-    # Cut the extra tower coverage
+    # Cut the extra tower coverage 
     """
     To trim the newly added tower and find a rectangle of the maximum size to monitor 
-    the uncovered space left in the overall region.
+    the uncovered(non-overlapping) space left in the overall region.
 
     Args:
         region (<numpy.ndarray>): The overall rectangle region.
         tower (dict):  A dictionary contains the location(key = 'loc'), length(key = 'length') and width(key = 'width').
         
     Returns:
-        trimmed_coverage (<numpy.ndarray>): A numpy.ndarray contains the whole region (marked as 0) and the maximum possible 
-                                            trimmed coverage of the communication tower installed (marked as 1).
         tower_area (int): The area of the maximal area of the trimed tower coverage.
+        tower_new (dict): The updated representaiton for the tower coverage. 
+                          A dictionary contains the location(key = 'loc'), length(key = 'length') and width(key = 'width').
     """
     loc, l, w = tower['loc'], tower['length'], tower['width']
      # To prepare for finding the largest area of rectangle
@@ -225,45 +211,85 @@ def trim_tower(region, tower, show_coverage_update=False):
     return tower_area, tower_new
 
 def full_coverage_generation(region, display=False, debug=False):
+    """
+    To create a combination of communication towers, randomly installed to provide full coverage to the given desired region of coverage.
+
+    Args:
+        region (<numpy.ndarray>): The overall rectangle region.
+        display (bool): To turn on or off the visualization.
+        
+    Returns:
+        coverage_area (int): The overall coverage area. (Should be identical to the input region)
+        region (<numpy.ndarray>): The updated overall region (Should be fully covered)
+        percent_coverage (float): The percentage of coverage to demonstrate the gap between the desired coverage and real coverage.
+        tower_loc_list (list): A list of all the location and coverage information of towers installed to provide fulll coverage.
+    """
+    assert isinstance(region, np.ndarray)
     target_area = region.shape[0] * region.shape[1]
-
-    tower_num_need = 0
+    
     coverage_area = 0
-
-    while coverage_area != target_area:
+    tower_cnt = 0
+    if display: 
+        fig, ax = draw_region(region.shape, display)
+    tower_loc_list = []
+    while coverage_area < target_area:
             # Generate the new tower to be installed into the region
             tower = generate_tower(region.shape)
+
+            if debug: print "The tower generated initially: \n", tower
             # 
             region_update = place_tower(region, tower)
+            if debug: print "The region after inital tower placement: \n", region_update
             # To keep the maximum possible coverage
-            tower_area, tower_loc_new = trim_tower(region_update, tower)
-            if tower_area != 0:
-                tower_num_need += 1
-                coverage_area  += tower_area
-            # To update the region
-            region = place_tower(region, tower_loc_new)
+            tower_area, tower_loc_new = trim_tower(region_update, tower, show_coverage_update=debug)
 
-    return tower_num_need, coverage_area
+            # To update the region
+            if tower_area > 0: 
+                tower_cnt += 1   
+                tower_loc_list.append(tower_loc_new)
+                if display: ax = draw_tower(ax, tower_loc_new)     
+                region = place_tower(region, tower_loc_new)
+                if np.sum(region[region > 1]) != 0:
+                    print "Original_tower: ", tower
+                    print tower_loc_new
+                    print tower_loc_list
+                    raise STOP
+            coverage_area  += tower_area
+
+    percent_coverage = (coverage_area * 1.0 / target_area) * 100
+    
+    if display:  
+        print "The desired coverage area: ", target_area
+        print "Total tower used: ", tower_cnt
+        print "The overall percentage of coverage area: ", percent_coverage, "%"
+        ax.set(xlabel='Width', ylabel='Length', title='The Coverage Map with {0} Communication Towers'.format(tower_cnt))
+    return coverage_area, region, percent_coverage, tower_loc_list
+
 
    
 def coverage_generation(region, tower_num, display=False, debug=False):
     # Generate the coverage map by inputing the desired coverage and a sequence of n  communication towers. 
     """
-    Need to be added
+    To install the given number of communication towers on the desired region of coverage and report the gap between the real coverage and desired coverage.
 
     Args:
         region (<numpy.ndarray>): The overall rectangle region.
-        target_area (int):  
-        display (boolen): True for show the visualization. (Default=False)
+        tower_num (int): The number of communication towers provided to install on the given region.
+        display (bool): To turn on or off the visualization.
     Returns:
-        coverage_area (int): The total area of the coverage after execution
-        coverage_map (<numpy.ndarray>): The updated region map with the new towers added.
+        coverage_area (int): The overall coverage area count. 
+        region (<numpy.ndarray>): The updated overall region.
+        percent_coverage (float): The percentage of coverage to demonstrate the gap between the desired coverage and real coverage.
+        tower_loc_list (list): A list of all the location and coverage information of towers installed to provide fulll coverage.
     """
+    assert isinstance(region, np.ndarray)
+
     target_area = region.shape[0] * region.shape[1]
-    print target_area
+    print "The desired coverage area: ", target_area
     coverage_area = 0
     tower_cnt = 0
-    if display == True: fig, ax = draw_region(region.shape)
+    if display: 
+        fig, ax = draw_region(region.shape, display)
     tower_loc_list = []
     while tower_num != tower_cnt:
             # Generate the new tower to be installed into the region
@@ -280,7 +306,7 @@ def coverage_generation(region, tower_num, display=False, debug=False):
             if tower_area > 0: 
                 tower_cnt += 1   
                 tower_loc_list.append(tower_loc_new)
-                if display == True: ax = draw_tower(ax, tower_loc_new)     
+                if display: ax = draw_tower(ax, tower_loc_new)     
                 region = place_tower(region, tower_loc_new)
                 if np.sum(region[region > 1]) != 0:
                     print "Original_tower: ", tower
@@ -295,25 +321,74 @@ def coverage_generation(region, tower_num, display=False, debug=False):
     print "Total tower used: ", tower_cnt
     percent_coverage = (coverage_area * 1.0 / target_area) * 100
     print "The overall percentage of coverage area: ", percent_coverage, "%"
+    if display:  
+        ax.set(xlabel='Width', ylabel='Length', title='The Coverage Map with {0} Communication Towers'.format(tower_cnt))
     return coverage_area, region, percent_coverage, tower_loc_list
 
 
-def draw_region(region_size):
+def average_tower_needed(length, width, max_iter=20):
+    """
+    To compute the average of towers needed to provide full coverage on the specified region.
+
+    Args:
+        length (int): The length of the desired region of coverage.
+        width (int): The width of the desired region of coverage.
+        max_iter (int): The number of iterations needed to calculate the average.
+        
+    Returns:
+        avg_towers (int): The average number of towers needed to give full coverage on specified region.
+        
+    """
+    num_tower_list = []
+    region = generate_region(length, width)
+    for i in xrange(max_iter):
+        coverage_area, coverage_map, percent_coverage, tower_list = full_coverage_generation(region, display=False, debug=False)
+        num_tower_list.append(len(tower_list))
+    avg_towers = int(sum(num_tower_list) * 1.0 / max_iter)
+    print "The average number of communication towers needed: ", avg_towers
+    return avg_towers
+
+def draw_region(region_size, display=False):
+    """
+    To initalize the desired region of coverage for visualization purpose.
+
+    Args:
+        region_size (<numpy.ndarray>): The region dimention with format (length, width).
+          
+    Returns:
+        fig (<matplotlib.figure.Figure>): The figure object for visualization.
+        ax (<matplotlib.axes._subplots.AxesSubplot>): The axes object for latter to draw towers. 
+        
+    """
     fig, ax = plt.subplots(1)
-    print region_size[0]
+    ax.set_aspect('auto')
     plt.ylim(region_size[0],0)
     plt.xlim(0,region_size[1])
     #ax.grid(color='r', linestyle='-', linewidth=1)
+    if display == False:
+        plt.close()
     return fig, ax
 
 def draw_tower(ax, tower, color_selection=None):
+    """
+    To draw the tower on the initialized region. To visualize the installation of the communication tower.
+
+    Args:
+        ax (<matplotlib.axes._subplots.AxesSubplot>): The axes object for latter to draw towers. 
+        tower (dict):  Representation for tower. 
+                       A dictionary contains the location(key = 'loc'), length(key = 'length') and width(key = 'width').
+          
+    Returns:
+        ax (<matplotlib.axes._subplots.AxesSubplot>): The updated axes object with tower drawed.
+        
+    """
     l, w = tower['length'], tower['width']
     loc_xy = (tower['loc'][1], tower['loc'][0])
     if color_selection == None:
         color_selection = (np.random.uniform(0,1), np.random.uniform(0,1), np.random.uniform(0,1))
-        #color_selection = 'b'
+        #color_selection = 'r'
 
-    ax.add_patch(Rectangle(xy=loc_xy, height=l, width=w, color=color_selection, hatch='\\', ec=(0,0,0,1)))
+    ax.add_patch(Rectangle(xy=loc_xy, height=l, width=w, color=color_selection, hatch='\\', ec=(0,0,0,1), alpha = 0.5))
     return ax
 
 
