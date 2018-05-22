@@ -130,7 +130,6 @@ def max_histogram_area(histogram, row):
         else: 
             stack.append(i)
             # print stack
-
     return max_rect, max_loc
 
 
@@ -232,6 +231,7 @@ def full_coverage_generation(region, display=False, debug=False):
     if display: 
         fig, ax = draw_region(region.shape, display)
     tower_loc_list = []
+    percent_coverage = [0]
     while coverage_area < target_area:
             # Generate the new tower to be installed into the region
             tower = generate_tower(region.shape)
@@ -254,14 +254,13 @@ def full_coverage_generation(region, display=False, debug=False):
                     print tower_loc_new
                     print tower_loc_list
                     raise STOP
-            coverage_area  += tower_area
-
-    percent_coverage = (coverage_area * 1.0 / target_area) * 100
+                coverage_area  += tower_area
+                percent_coverage.append((coverage_area * 1.0 / target_area) * 100) 
     
     if display:  
         print "The desired coverage area: ", target_area
         print "Total tower used: ", tower_cnt
-        print "The overall percentage of coverage area: ", percent_coverage, "%"
+        print "The overall percentage of coverage area: ", percent_coverage[-1], "%"
         ax.set(xlabel='Width', ylabel='Length', title='The Coverage Map with {0} Communication Towers'.format(tower_cnt))
     return coverage_area, region, percent_coverage, tower_loc_list
 
@@ -279,7 +278,7 @@ def coverage_generation(region, tower_num, display=False, debug=False):
     Returns:
         coverage_area (int): The overall coverage area count. 
         region (<numpy.ndarray>): The updated overall region.
-        percent_coverage (float): The percentage of coverage to demonstrate the gap between the desired coverage and real coverage.
+        percent_coverage (list): The percentage of coverage to demonstrate the gap between the desired coverage and real coverage from 0 to n towers.
         tower_loc_list (list): A list of all the location and coverage information of towers installed to provide fulll coverage.
     """
     assert isinstance(region, np.ndarray)
@@ -288,9 +287,9 @@ def coverage_generation(region, tower_num, display=False, debug=False):
     print "The desired coverage area: ", target_area
     coverage_area = 0
     tower_cnt = 0
-    if display: 
-        fig, ax = draw_region(region.shape, display)
     tower_loc_list = []
+    percent_coverage = [0]
+    if display: fig, ax = draw_region(region.shape, display)
     while tower_num != tower_cnt:
             # Generate the new tower to be installed into the region
             tower = generate_tower(region.shape)
@@ -313,20 +312,20 @@ def coverage_generation(region, tower_num, display=False, debug=False):
                     print tower_loc_new
                     print tower_loc_list
                     raise STOP
-            coverage_area  += tower_area
-
+                coverage_area  += tower_area
+                percent_coverage.append((coverage_area * 1.0 / target_area) * 100) 
             if coverage_area >= target_area:
                 print "Coverage requirement met, ", coverage_area
                 break
     print "Total tower used: ", tower_cnt
-    percent_coverage = (coverage_area * 1.0 / target_area) * 100
-    print "The overall percentage of coverage area: ", percent_coverage, "%"
+    
+    print "The overall percentage of coverage area: ", percent_coverage[-1], "%"
     if display:  
         ax.set(xlabel='Width', ylabel='Length', title='The Coverage Map with {0} Communication Towers'.format(tower_cnt))
     return coverage_area, region, percent_coverage, tower_loc_list
 
 
-def average_tower_needed(length, width, max_iter=20):
+def average_tower_needed(length, width, max_iter=20, display=False):
     """
     To compute the average of towers needed to provide full coverage on the specified region.
 
@@ -345,7 +344,7 @@ def average_tower_needed(length, width, max_iter=20):
         coverage_area, coverage_map, percent_coverage, tower_list = full_coverage_generation(region, display=False, debug=False)
         num_tower_list.append(len(tower_list))
     avg_towers = int(sum(num_tower_list) * 1.0 / max_iter)
-    print "The average number of communication towers needed: ", avg_towers
+    if display: print "The average number of communication towers needed: ", avg_towers
     return avg_towers
 
 def draw_region(region_size, display=False):
